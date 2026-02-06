@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>中物智建年会抽奖 - 稳定修复版</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-red: #b90504;
+            --dark-red: #720e0e;
+            --gold: #fadd8c;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --border-gold: #cfaa56;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at center, var(--primary-red), var(--dark-red));
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            color: var(--gold);
+        }
+
+        .bg-pattern {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: repeating-linear-gradient(45deg, rgba(255,215,0,0.03) 0, rgba(255,215,0,0.03) 20px, transparent 20px, transparent 40px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .horse-watermark {
+            position: absolute;
+            bottom: -5vh;
+            right: -5vw;
+            font-size: 40vh;
+            opacity: 0.08;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        header {
+            z-index: 10;
+            text-align: center;
+            margin-top: 2vh;
+            flex-shrink: 0;
+        }
+
+        .year-pill {
+            background: var(--gold);
+            color: var(--dark-red);
+            padding: 5px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-size: 1.2rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+            border-bottom: 2px solid rgba(250, 221, 140, 0.5);
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .stage {
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100%; 
+            overflow: hidden;
+        }
+
+        .controls { margin-bottom: 15px; flex-shrink: 0; }
+
+        select {
+            padding: 12px 40px;
+            font-size: 1.4rem;
+            background: rgba(0,0,0,0.4);
+            color: var(--gold);
+            border: 2px solid var(--gold);
+            border-radius: 50px;
+            outline: none;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .slots-wrapper {
+            display: flex;
+            gap: 20px;
+            width: 95%;
+            max-width: 1000px;
+            height: 25vh;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .slot-box {
+            flex: 1;
+            background: var(--card-bg);
+            border: 6px solid var(--border-gold);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slot-header {
+            background: var(--gold);
+            color: var(--dark-red);
+            text-align: center;
+            font-weight: bold;
+            padding: 8px 0;
+            font-size: 1.4rem;
+            z-index: 2;
+        }
+
+        .slot-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--primary-red);
+            padding: 10px;
+        }
+
+        .big-text {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        /* 隐藏掉副标题 */
+        .sub-text {
+            display: none;
+        }
+
+        #mainBtn {
+            background: linear-gradient(180deg, #ffeb3b, #ffc107);
+            border: none;
+            padding: 12px 80px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #b30000;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b28704, 0 15px 20px rgba(0,0,0,0.4);
+            transition: all 0.1s;
+            min-width: 250px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        #mainBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b28704; }
+        #mainBtn:disabled { filter: grayscale(1); cursor: not-allowed; color: #555; background: #ccc; box-shadow: none; }
+
+        .record-panel {
+            width: 98%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(250, 221, 140, 0.4);
+            border-radius: 15px;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            flex: 1; 
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .panel-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 12px;
+            padding-right: 10px;
+        }
+
+        /* 滚动条美化 */
+        .panel-list::-webkit-scrollbar { width: 12px; }
+        .panel-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 6px; }
+        .panel-list::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #fadd8c, #cfaa56); border-radius: 6px; border: 2px solid rgba(0,0,0,0.1); }
+        .panel-list::-webkit-scrollbar-thumb:hover { background: #e6b800; }
+
+        .winner-pill {
+            background: linear-gradient(135deg, #fff5e6, #ffe0b2);
+            color: #b90504;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #e6b800;
+            transition: all 0.3s ease;
+        }
+        
+        .winner-pill.new-item {
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .winner-prize-tag {
+            font-size: 0.8em;
+            background: #b90504;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 6px;
+            min-width: 80px; 
+            text-align: center;
+        }
+        
+        .winner-round-tag { font-size: 0.6em; color: #666; margin-right: 2px; font-weight: normal; }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; background: #fff; box-shadow: 0 0 30px #fff; }
+            50% { transform: scale(1.1); opacity: 1; background: #ffffcc; box-shadow: 0 0 20px #ffff00; }
+            100% { transform: scale(1); opacity: 1; background: linear-gradient(135deg, #fff5e6, #ffe0b2); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+        }
+
+        .history-trigger {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0,0,0,0.6); border: 2px solid var(--gold);
+            color: var(--gold); padding: 10px 20px; border-radius: 30px;
+            cursor: pointer; z-index: 50; font-size: 1.1rem; font-weight: bold;
+        }
+
+        .drawer {
+            position: fixed; top: 0; right: -100%; width: 350px; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 100; transition: right 0.3s ease;
+            padding: 25px; box-sizing: border-box; border-left: 2px solid var(--gold); overflow-y: auto;
+        }
+        .drawer.open { right: 0; }
+        
+        .history-item {
+            border-bottom: 1px dashed #555; padding: 12px 0;
+            display: flex; justify-content: space-between; font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .slots-wrapper { height: 20vh; }
+            .big-text { font-size: 2rem; }
+            .record-panel { min-height: 250px; }
+            .winner-pill { font-size: 1.1rem; padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-pattern"></div>
+    <div class="horse-watermark">🐎</div>
+
+    <header>
+        <div class="year-pill">2026 丙午马年</div>
+        <br>
+        <h1 contenteditable="true">中物智建年会抽奖</h1>
+    </header>
+
+    <div class="stage">
+        <div class="controls">
+            <select id="roundSelect" onchange="changeRound()">
+                <option value="0">第1轮：马上有福奖 (抽8人)</option>
+                <option value="1">第2轮：马上有福奖 (抽8人)</option>
+                <option value="2">第3轮：马上有福奖 (抽7人)</option>
+                <option value="3">第4轮：马上精神奖 (抽5人)</option>
+                <option value="4">第5轮：马上律动奖 (抽2人)</option>
+                <option value="5">第6轮：龙马至尊奖 (抽1人)</option>
+            </select>
+        </div>
+
+        <div class="slots-wrapper">
+            <div class="slot-box">
+                <div class="slot-header">本轮奖项</div>
+                <div class="slot-content" id="prizeSlot"></div>
+            </div>
+            <div class="slot-box">
+                <div class="slot-header">中奖幸运儿</div>
+                <div class="slot-content" id="nameSlot">
+                    <div class="big-text">?</div>
+                </div>
+            </div>
+        </div>
+
+        <button id="mainBtn" onclick="toggleDraw()">开始抽奖 (空格键)</button>
+
+        <div class="record-panel">
+            <div class="panel-title">
+                <span>🏆 中奖光荣榜 (共 <span id="totalWinnerCount">0</span> 人)</span>
+                <span id="poolStatus" style="font-size:1rem; color:var(--gold);">本轮剩余: --</span>
+            </div>
+            <div class="panel-list" id="fullRecordList"></div>
+        </div>
+    </div>
+
+    <div class="history-trigger" onclick="toggleDrawer()">📜 管理与备份</div>
+    <div class="drawer" id="historyDrawer">
+        <h2 style="color:#fff; border-bottom:1px solid #666; padding-bottom:10px; margin-top:0;">
+            数据管理
+            <span style="float:right; cursor:pointer;" onclick="toggleDrawer()">×</span>
+        </h2>
+        <div style="margin-bottom:20px;">
+             <button onclick="resetData()" style="background:#b90504; color:#fff; border:none; padding:12px; width:100%; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer;">⚠ 重置所有数据</button>
+        </div>
+        <h3 style="color:var(--gold);">历史记录列表</h3>
+        <div id="historyList"></div>
+    </div>
+
+    <script>
+        // ================= 数据配置区 =================
+
+        const allNames = [
+            '刘闵华', '何林峰', '石波', '兰天', '潘溪', '方鹏飞', '徐小照', '晏子涵', '董建雄', '高俊岩', 
+            '彭星', '付朝阳', '盛小洋', '王刚', '李杰', '王诚', '程泽龙', '张一彤', '王川', '冷文锋', 
+            '程鹏', '胡子文', '李文斌', '吴浩天', '李晶晶', '周环', '方璐', '曹蕾', '徐甜', '高黎黎', 
+            '曹敏'
+        ];
+
+        const prizeDefs = {
+            mem: { title: "“马上有福”奖" },
+            third: { title: "“马上精神”奖" },
+            second: { title: "“马上律动”奖" },
+            first: { title: "“龙马至尊”奖" }
+        };
+
+        const initialPools = [
+            ['mem','mem','mem','mem','mem','mem','mem','mem'], // 第1轮 8
+            ['mem','mem','mem','mem','mem','mem','mem','mem'], // 第2轮 8
+            ['mem','mem','mem','mem','mem','mem','mem'],       // 第3轮 7
+            ['third','third','third','third','third'],         // 第4轮 5
+            ['second','second'],                               // 第5轮 2
+            ['first']                                          // 第6轮 1
+        ];
+        
+        // ================= 逻辑区 =================
+
+        let participants = [];
+        let roundPools = [];
+        let winners = [];
+        
+        let isRolling = false;
+        let timerName = null;
+        let currentRoundIdx = 0;
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                if (document.activeElement.isContentEditable) return;
+                e.preventDefault();
+                const btn = document.getElementById('mainBtn');
+                if (!btn.disabled) toggleDraw();
+            }
+        });
+
+        window.onload = function() {
+            loadData();
+            updateUI();
+            initRecordList();
+        };
+
+        function loadData() {
+            // 升级到 V9 版本，强制刷新旧缓存，避免数据冲突
+            const p = localStorage.getItem('zwzj_v9_participants'); 
+            const pool = localStorage.getItem('zwzj_v9_pools');
+            const w = localStorage.getItem('zwzj_v9_winners');
+
+            if (p && pool) {
+                participants = JSON.parse(p);
+                roundPools = JSON.parse(pool);
+            } else {
+                participants = [...allNames];
+                roundPools = JSON.parse(JSON.stringify(initialPools));
+            }
+
+            if (w) winners = JSON.parse(w);
+        }
+
+        function saveData() {
+            localStorage.setItem('zwzj_v9_participants', JSON.stringify(participants));
+            localStorage.setItem('zwzj_v9_pools', JSON.stringify(roundPools));
+            localStorage.setItem('zwzj_v9_winners', JSON.stringify(winners));
+        }
+
+        function changeRound() {
+            if (isRolling) return;
+            const select = document.getElementById('roundSelect');
+            currentRoundIdx = parseInt(select.value);
+            
+            document.getElementById('nameSlot').innerHTML = '<div class="big-text">?</div>';
+            
+            updateUI();
+        }
+
+        function toggleDraw() {
+            const btn = document.getElementById('mainBtn');
+            const currentPool = roundPools[currentRoundIdx];
+
+            if (currentPool.length === 0) {
+                alert("本轮奖项已抽完！请切换下一轮。");
+                return;
+            }
+            if (participants.length === 0) {
+                alert("所有参会人员已中奖！");
+                return;
+            }
+
+            if (!isRolling) {
+                // >>> 开始抽奖 <<<
+                isRolling = true;
+                btn.textContent = "停 止";
+                btn.style.background = "#fff";
+                btn.style.color = "#b90504";
+                document.getElementById('roundSelect').disabled = true;
+
+                // 快速滚动名单
+                const nameDom = document.getElementById('nameSlot');
+                timerName = setInterval(() => {
+                    const rName = participants[Math.floor(Math.random() * participants.length)];
+                    nameDom.innerHTML = `<div class="big-text">${rName}</div>`;
+                }, 50);
+
+            } else {
+                // >>> 减速停止 <<<
+                
+                // 1. 预先锁定结果
+                const pIndex = Math.floor(Math.random() * currentPool.length);
+                const winningKey = currentPool[pIndex];
+                const prizeInfo = prizeDefs[winningKey];
+                
+                const nIndex = Math.floor(Math.random() * participants.length);
+                const winnerName = participants[nIndex];
+
+                // 2. 停止快速滚动
+                clearInterval(timerName);
+                
+                // 3. 禁用按钮
+                btn.disabled = true;
+                btn.textContent = "悬念揭晓中...";
+                btn.style.background = "#ccc";
+                btn.style.color = "#555";
+                
+                // 4. 减速动画
+                let speed = 50; 
+                let duration = 2000; 
+                let elapsed = 0;
+                
+                const nameDom = document.getElementById('nameSlot');
+                
+                function slowLoop() {
+                    const rName = participants[Math.floor(Math.random() * participants.length)];
+                    nameDom.innerHTML = `<div class="big-text">${rName}</div>`;
+                    
+                    speed = speed * 1.1; 
+                    elapsed += speed;
+                    
+                    if (elapsed < duration) {
+                        setTimeout(slowLoop, speed);
+                    } else {
+                        finishDraw(pIndex, nIndex, winningKey, prizeInfo, winnerName);
+                    }
+                }
+                
+                slowLoop();
+            }
+        }
+        
+        function finishDraw(pIndex, nIndex, winningKey, prizeInfo, winnerName) {
+            const btn = document.getElementById('mainBtn');
+            const currentPool = roundPools[currentRoundIdx];
+            
+            // 移除数据
+            currentPool.splice(pIndex, 1);
+            participants.splice(nIndex, 1);
+
+            // 显示最终结果
+            document.getElementById('nameSlot').innerHTML = 
+                `<div class="big-text" style="color:#b90504">${winnerName}</div>`;
+
+            const winRecord = {
+                roundIdx: currentRoundIdx,
+                roundName: document.getElementById('roundSelect').options[currentRoundIdx].text.split('：')[0], 
+                prize: prizeInfo.title,
+                name: winnerName
+            };
+
+            winners.push(winRecord);
+            saveData();
+            
+            // 安全播放特效（断网保护）
+            try {
+                fireConfetti();
+            } catch (e) {
+                console.warn('特效播放失败，可能是网络原因跳过');
+            }
+            
+            // 必须重置状态，否则会卡死
+            isRolling = false;
+            btn.disabled = false;
+            document.getElementById('roundSelect').disabled = false;
+            updateUI(); 
+            addNewRecord(winRecord);
+        }
+
+        function createRecordElement(w, isNew) {
+            const div = document.createElement('div');
+            div.className = 'winner-pill';
+            if(isNew) div.classList.add('new-item');
+            div.innerHTML = `
+                <span class="winner-prize-tag">${w.prize}</span> 
+                ${w.name}
+                <span class="winner-round-tag">(${w.roundName})</span>
+            `;
+            return div;
+        }
+
+        function initRecordList() {
+            const list = document.getElementById('fullRecordList');
+            const countSpan = document.getElementById('totalWinnerCount');
+            list.innerHTML = '';
+            [...winners].reverse().forEach(w => {
+                list.appendChild(createRecordElement(w, false));
+            });
+            countSpan.textContent = winners.length;
+        }
+
+        function addNewRecord(w) {
+            const list = document.getElementById('fullRecordList');
+            const countSpan = document.getElementById('totalWinnerCount');
+            const div = createRecordElement(w, true);
+            if(list.firstChild) {
+                list.insertBefore(div, list.firstChild);
+            } else {
+                list.appendChild(div);
+            }
+            countSpan.textContent = winners.length;
+        }
+
+        function updateUI() {
+            const pool = roundPools[currentRoundIdx];
+            const poolStatus = document.getElementById('poolStatus');
+            const btn = document.getElementById('mainBtn');
+            const roundName = document.getElementById('roundSelect').options[currentRoundIdx].text.split('：')[0];
+
+            const currentRoundType = initialPools[currentRoundIdx][0]; 
+            const prizeInfo = prizeDefs[currentRoundType];
+            
+            document.getElementById('prizeSlot').innerHTML = 
+                `<div class="big-text" style="color:#d35400; font-size:2.5rem">${prizeInfo.title}</div>`;
+
+            if (pool.length === 0) {
+                poolStatus.textContent = `${roundName} 已抽完`;
+                btn.disabled = true;
+                btn.textContent = "本轮结束";
+                btn.style.background = "#ccc";
+                btn.style.color = "#555";
+            } else {
+                poolStatus.textContent = `${roundName} 剩余: ${pool.length} 个`;
+                // 修复：只要不在抽奖中，就强制重置按钮状态
+                if(!isRolling) {
+                    btn.disabled = false;
+                    btn.textContent = "开始抽奖 (空格)";
+                    btn.style.background = ""; 
+                    btn.style.color = "";
+                }
+            }
+
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            [...winners].reverse().forEach(w => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div style="color:#aaa;">${w.roundName} ${w.prize}</div>
+                    <div style="color:#fadd8c; font-weight:bold;">${w.name}</div>
+                `;
+                historyList.appendChild(item);
+            });
+        }
+
+        // 容错版特效函数
+        function fireConfetti() {
+            if (typeof confetti !== 'function') return;
+            var end = Date.now() + 1500;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#fadd8c', '#b90504'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#fadd8c', '#b90504'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        function toggleDrawer() { document.getElementById('historyDrawer').classList.toggle('open'); }
+
+        function resetData() {
+            if(confirm("⚠ 确定要清空所有记录并重置31人名单吗？此操作无法撤销！")) {
+                localStorage.removeItem('zwzj_v9_participants');
+                localStorage.removeItem('zwzj_v9_pools');
+                localStorage.removeItem('zwzj_v9_winners');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
